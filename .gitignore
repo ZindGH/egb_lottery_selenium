@@ -188,3 +188,5 @@ fabric.properties
 /chrome_profiles/
 /cookies.pkl
 /chrome_profiles/
+logs.log
+geckodriver.log
