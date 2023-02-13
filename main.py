@@ -67,7 +67,7 @@ while True:
     for butn_xpath in butn_xpaths:
         try:
             wait_post = ui.WebDriverWait(driver, 60 * (5 + rand_int[0]), poll_frequency=60)
-            wait_post.until(expected_conditions.element_to_be_clickable((By.XPATH, butn_xpaths)))
+            wait_post.until(expected_conditions.element_to_be_clickable((By.XPATH, butn_xpath)))
             real_xpath = butn_xpath
             break
         except selenium.common.exceptions.TimeoutException as error:
