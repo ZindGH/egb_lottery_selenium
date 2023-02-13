@@ -2,7 +2,7 @@ import selenium.common.exceptions
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import ui, expected_conditions
-import os, pickle, time, random, logging
+import os, pickle, time, random, logging, platform
 
 #  Logging included
 
@@ -15,10 +15,14 @@ options = webdriver.ChromeOptions()
 profile_dir = os.path.abspath('chrome_profiles/')
 options.add_argument("--disable-extensions")
 options.add_argument("--disable-gpu")
-# options.add_argument("--no-sandbox") # linux only
 options.add_argument("--headless")
 options.add_argument("user-data-dir=" + profile_dir)
-driver = webdriver.Chrome(options=options)
+if platform.system() == 'Linux':
+    # options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(executable_path='usr/bin/chromedriver', options=options)  # linux
+else:
+    driver = webdriver.Chrome(options=options)
+
 
 
 # Cookie way of saving session
@@ -42,32 +46,42 @@ def save_cookie(driver):
 #     driver = open_cookies(driver)
 # else:
 #     driver = save_cookie(driver)
-butn_xpath = [
+butn_xpaths = [
+    '/html/body/div[2]/div[1]/div[4]/div/aside/div/div[4]/div[2]/div[1]/button',
     '/html/body/div[2]/div[1]/div[4]/div/aside/div/div[5]/div[2]/div[1]/button',
     '/html/body/div[2]/div[1]/div[4]/div/aside/div/div[6]/div[2]/div[1]/button'
 ]
+butn_xpaths *= 2  # create 2 cycles
+
 
 rand_int = random.choices(
-    population=[2, 3, 4, 5, 11],
-    weights=[30, 30, 30, 5, 5]
+    population=[2, 3, 4, 2],
+    weights=[25, 25, 25, 25]
 )
 error_count = 0
 success_count = 0
 while True:
     logging.info(f'Number of success: {success_count}.')
     driver.get('https://egbet.live')
+    # time.sleep(60)  # If login required
+    for butn_xpath in butn_xpaths:
+        try:
+            wait_post = ui.WebDriverWait(driver, 60 * (5 + rand_int[0]), poll_frequency=60)
+            wait_post.until(expected_conditions.element_to_be_clickable((By.XPATH, butn_xpaths)))
+            real_xpath = butn_xpath
+            break
+        except selenium.common.exceptions.TimeoutException as error:
+            logging.info(f'Waiting TimeoutException occured. Error number: {error_count}\nPath used:{butn_xpath}')
+
     try:
-        wait_post = ui.WebDriverWait(driver, 60 * (30 + rand_int[0]), poll_frequency=120)
-        wait_post.until(expected_conditions.element_to_be_clickable((By.XPATH, butn_xpath[0])))
-    except selenium.common.exceptions.TimeoutException as error:
-        error_count += 1
-        logging.exception(f'Waiting TimeoutException occured. Error number: {error_count}\n{error}')
-    try:
-        butn = driver.find_element(by=By.XPATH, value=butn_xpath[0])
+        butn = driver.find_element(by=By.XPATH, value=real_xpath)
     except selenium.common.exceptions.NoSuchElementException as error:
         error_count += 1
-        logging.info(f'NoSuchElementException occured; xpath[1] used. Error number: {error_count}')
-        butn = driver.find_element(by=By.XPATH, value=butn_xpath[1])
+        logging.error(f'NoSuchElementException occured; {real_xpath} used. Error number: {error_count}')
+        break
+    except NameError:
+        logging.error(f'No available xpaths in {butn_xpaths[0:3]}')
+
     try:
         driver.execute_script("arguments[0].click();", butn)
     except selenium.common.exceptions.ElementClickInterceptedException as error:
