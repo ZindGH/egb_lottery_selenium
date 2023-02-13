@@ -11,11 +11,15 @@ logging.basicConfig(level=logging.INFO, filename='logs.log', format='%(asctime)s
 """
 Use Chrome profile to save previous session.
 """
-profile_dir = os.path.abspath('chrome_profiles/')
 options = webdriver.ChromeOptions()
 profile_dir = os.path.abspath('chrome_profiles/')
-options.add_argument("user-data-dir="+profile_dir)
+options.add_argument("--disable-extensions")
+options.add_argument("--disable-gpu")
+# options.add_argument("--no-sandbox") # linux only
+options.add_argument("--headless")
+options.add_argument("user-data-dir=" + profile_dir)
 driver = webdriver.Chrome(options=options)
+
 
 # Cookie way of saving session
 def open_cookies(driver):
@@ -23,6 +27,8 @@ def open_cookies(driver):
     for cookie in cookies:
         driver.add_cookie(cookie)
     return driver
+
+
 def save_cookie(driver):
     ref_xpath = '/html/body/div[2]/div[1]/div[1]/div/div[3]/div[2]/div/a/span[1]'
     driver.get('http://egbet.live')
@@ -30,6 +36,8 @@ def save_cookie(driver):
     wait.until(expected_conditions.presence_of_element_located((By.XPATH, ref_xpath)))
     pickle.dump(driver.get_cookies(), open("cookies.pkl", "wb"))
     return driver
+
+
 # if os.path.isfile('cookies.pkl'):
 #     driver = open_cookies(driver)
 # else:
@@ -37,8 +45,7 @@ def save_cookie(driver):
 butn_xpath = [
     '/html/body/div[2]/div[1]/div[4]/div/aside/div/div[5]/div[2]/div[1]/button',
     '/html/body/div[2]/div[1]/div[4]/div/aside/div/div[6]/div[2]/div[1]/button'
-    ]
-
+]
 
 rand_int = random.choices(
     population=[2, 3, 4, 5, 11],
@@ -50,11 +57,11 @@ while True:
     logging.info(f'Number of success: {success_count}.')
     driver.get('https://egbet.live')
     try:
-        wait_post = ui.WebDriverWait(driver, 60 * (30 + rand_int[0]), poll_frequency=60)
+        wait_post = ui.WebDriverWait(driver, 60 * (30 + rand_int[0]), poll_frequency=120)
         wait_post.until(expected_conditions.element_to_be_clickable((By.XPATH, butn_xpath[0])))
     except selenium.common.exceptions.TimeoutException as error:
         error_count += 1
-        logging.info(f'Waiting TimeoutException occured. Error number: {error_count}')
+        logging.exception(f'Waiting TimeoutException occured. Error number: {error_count}\n{error}')
     try:
         butn = driver.find_element(by=By.XPATH, value=butn_xpath[0])
     except selenium.common.exceptions.NoSuchElementException as error:
@@ -65,9 +72,8 @@ while True:
         driver.execute_script("arguments[0].click();", butn)
     except selenium.common.exceptions.ElementClickInterceptedException as error:
         error_count += 1
-        logging.info(f'ElementClickInterceptedException occured; Errorlog: {error}\nError number: {error_count}')
-
+        logging.exception(f'ElementClickInterceptedException occured; Errorlog: {error}\nError number: {error_count}')
 
     success_count += 1
-    if error_count >= 10:
+    if error_count >= 10 or success_count >= 100:  # If something goes completely wrong.
         break
